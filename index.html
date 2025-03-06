@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Drop Game - Enhanced</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background: radial-gradient(circle at center, #00ced1, #ff00ff, #ffff00);
+            animation: pulse 5s infinite alternate;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            font-family: Arial, sans-serif;
+            touch-action: none;
+        }
+        @keyframes pulse {
+            0% { background: radial-gradient(circle at center, #00ced1, #ff00ff, #ffff00); }
+            100% { background: radial-gradient(circle at center, #ff00ff, #ffff00, #00ced1); }
+        }
+        #gameCanvas {
+            border: 2px solid #fff;
+            background: rgba(0, 0, 0, 0.2);
+        }
+        #gameOverScreen {
+            display: none;
+            position: absolute;
+            text-align: center;
+            color: #fff;
+        }
+        #gameOverScreen button {
+            padding: 10px 20px;
+            font-size: 16px;
+            margin: 10px;
+            cursor: pointer;
+            background-color: #00ff00;
+            border: none;
+            border-radius: 5px;
+        }
+        #gameOverScreen button:hover {
+            background-color: #00cc00;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="gameCanvas" width="400" height="600"></canvas>
+    <div id="gameOverScreen">
+        <h1>Game Over!</h1>
+        <p>Your Score: <span id="finalScore"></span></p>
+        <button id="tryAgain">Try Again</button>
+        <button id="shareTwitter">Share to Twitter</button>
+    </div>
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const gameOverScreen = document.getElementById('gameOverScreen');
+        const finalScoreDisplay = document.getElementById('finalScore');
+        const tryAgainBtn = document.getElementById('tryAgain');
+        const shareTwitterBtn = document.getElementById('shareTwitter');
+
+        const paddle = { width: 80, height: 20, x: canvas.width / 2 - 40, y: canvas.height - 40, speed: 7 };
+        const items = [];
+        const itemSize = 40;
+        let score = 0;
+        let timeLeft = 70;
+        let gameActive = true;
+        let leftPressed = false;
+        let rightPressed = false;
+
+        // Load images
+        const circleImg = new Image();
+        circleImg.src = 'circle.png';
+        const boomImg1 = new Image();
+        boomImg1.src = 'boom.png';
+        const boomImg2 = new Image();
+        boomImg2.src = 'boom.jpg';
+
+        function createItem() {
+            const x = Math.random() * (canvas.width - itemSize) + itemSize / 2;
+            const isBomb = Math.random() < 0.3;
+            const bombType = isBomb ? (Math.random() < 0.5 ? 'boom1' : 'boom2') : null;
+            // Increased speed by 40%: from (2 to 4) to (2.8 to 5.6)
+            items.push({ x, y: -itemSize, speed: Math.random() * 2.8 + 2.8, isBomb, bombType });
+        }
+
+        function update() {
+            if (!gameActive) return;
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            if (leftPressed && paddle.x > 0) paddle.x -= paddle.speed;
+            if (rightPressed && paddle.x < canvas.width - paddle.width) paddle.x += paddle.speed;
+
+            ctx.fillStyle = '#00ff00';
+            ctx.fillRect(paddle.x, paddle.y, paddle.width, paddle.height);
+
+            for (let i = items.length - 1; i >= 0; i--) {
+                const item = items[i];
+                item.y += item.speed;
+                let img = item.isBomb ? (item.bombType === 'boom1' ? boomImg1 : boomImg2) : circleImg;
+                ctx.drawImage(img, item.x - itemSize / 2, item.y - itemSize / 2, itemSize, itemSize);
+
+                if (item.y + itemSize / 2 > paddle.y && item.y - itemSize / 2 < paddle.y + paddle.height && item.x > paddle.x && item.x < paddle.x + paddle.width) {
+                    score += item.isBomb ? -20 : 10;
+                    items.splice(i, 1);
+                    continue;
+                }
+                if (item.y > canvas.height) items.splice(i, 1);
+            }
+            if (Math.random() < 0.02) createItem();
+            ctx.fillStyle = '#fff';
+            ctx.font = '20px Arial';
+            ctx.fillText(`Score: ${score}`, 10, 30);
+            ctx.fillText(`Time: ${Math.ceil(timeLeft)}`, canvas.width - 80, 30);
+            timeLeft -= 1 / 60;
+            if (timeLeft <= 0) endGame();
+            requestAnimationFrame(update);
+        }
+
+        function endGame() {
+            gameActive = false;
+            canvas.style.display = 'none';
+            gameOverScreen.style.display = 'block';
+            finalScoreDisplay.textContent = score;
+
+            // Share to Twitter button with custom tweet
+            const tweetText = `I just finished the @sign's drop game made by @appledog_eth with a score of ${score}, show me how much you got. Play the @sign's drop game https://phyllic.github.io/sign-s-drop-game/`;
+            const tweetUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(tweetText)}`;
+            shareTwitterBtn.onclick = () => window.open(tweetUrl, '_blank');
+        }
+
+        function resetGame() {
+            score = 0;
+            timeLeft = 70;
+            items.length = 0;
+            paddle.x = canvas.width / 2 - 40;
+            gameActive = true;
+            canvas.style.display = 'block';
+            gameOverScreen.style.display = 'none';
+            update();
+        }
+
+        tryAgainBtn.onclick = resetGame;
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowLeft') leftPressed = true;
+            if (e.key === 'ArrowRight') rightPressed = true;
+        });
+
+        document.addEventListener('keyup', (e) => {
+            if (e.key === 'ArrowLeft') leftPressed = false;
+            if (e.key === 'ArrowRight') rightPressed = false;
+        });
+
+        // Note: This uses touchmove for dragging, not tap controls as in the previous version
+        canvas.addEventListener('touchmove', (e) => {
+            e.preventDefault();
+            const touchX = e.touches[0].clientX - canvas.getBoundingClientRect().left;
+            paddle.x = touchX - paddle.width / 2;
+            if (paddle.x < 0) paddle.x = 0;
+            if (paddle.x > canvas.width - paddle.width) paddle.x = canvas.width - paddle.width;
+        });
+
+        // Start game after images load
+        let imagesLoaded = 0;
+        const totalImages = 3;
+        function imageLoaded() {
+            imagesLoaded++;
+            if (imagesLoaded === totalImages) {
+                update();
+            }
+        }
+        circleImg.onload = imageLoaded;
+        boomImg1.onload = imageLoaded;
+        boomImg2.onload = imageLoaded;
+    </script>
+</body>
+</html>
