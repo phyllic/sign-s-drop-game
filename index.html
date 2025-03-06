@@ -8,14 +8,13 @@
         body {
             margin: 0;
             overflow: hidden;
-            background: radial-gradient(circle at center, #00ced1, #ff00ff, #ffff00); /* Teal, magenta, yellow radial gradient */
+            background: radial-gradient(circle at center, #00ced1, #ff00ff, #ffff00);
             display: flex;
             justify-content: center;
             align-items: center;
             height: 100vh;
             font-family: Arial, sans-serif;
             touch-action: none;
-            animation: pulse 5s infinite alternate; /* Pulsating effect */
         }
         @keyframes pulse {
             0% { background: radial-gradient(circle at center, #00ced1, #ff00ff, #ffff00); }
@@ -88,7 +87,7 @@
         // Handle movement (keyboard and touch)
         let leftPressed = false;
         let rightPressed = false;
-        let touchX = null;
+        let isDragging = false;
 
         // Keyboard controls
         document.addEventListener('keydown', (e) => {
@@ -101,32 +100,37 @@
             else if (e.key === 'ArrowRight') rightPressed = false;
         });
 
-        // Touch controls
+        // Touch controls: Hold and drag
         canvas.addEventListener('touchstart', (e) => {
             e.preventDefault();
+            const rect = canvas.getBoundingClientRect();
             const touch = e.touches[0];
-            touchX = touch.clientX - canvas.offsetLeft;
+            const touchX = touch.clientX - rect.left;
+            // Check if touch is near the paddle to start dragging
+            if (touchX >= paddle.x && touchX <= paddle.x + paddle.width) {
+                isDragging = true;
+            }
+            console.log('Touch started at:', touchX); // Debug
         });
 
         canvas.addEventListener('touchmove', (e) => {
             e.preventDefault();
+            if (!isDragging) return;
+            const rect = canvas.getBoundingClientRect();
             const touch = e.touches[0];
-            const newTouchX = touch.clientX - canvas.offsetLeft;
-            if (newTouchX < touchX) {
-                leftPressed = true;
-                rightPressed = false;
-            } else if (newTouchX > touchX) {
-                rightPressed = true;
-                leftPressed = false;
-            }
-            touchX = newTouchX;
+            const touchX = touch.clientX - rect.left;
+            // Move paddle directly to touch position, centered under finger
+            paddle.x = touchX - paddle.width / 2;
+            // Clamp paddle within canvas bounds
+            if (paddle.x < 0) paddle.x = 0;
+            if (paddle.x > canvas.width - paddle.width) paddle.x = canvas.width - paddle.width;
+            console.log('Touch moved to:', touchX); // Debug
         });
 
         canvas.addEventListener('touchend', (e) => {
             e.preventDefault();
-            leftPressed = false;
-            rightPressed = false;
-            touchX = null;
+            isDragging = false;
+            console.log('Touch ended'); // Debug
         });
 
         // Create a new falling item
@@ -149,7 +153,7 @@
 
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-            // Move paddle
+            // Move paddle (keyboard only, touch handled in events)
             if (leftPressed && paddle.x > 0) paddle.x -= paddle.speed;
             if (rightPressed && paddle.x < canvas.width - paddle.width) paddle.x += paddle.speed;
 
