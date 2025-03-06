@@ -8,12 +8,13 @@
         body {
             margin: 0;
             overflow: hidden;
-            background: linear-gradient(135deg, #8a2be2, #ff4500); /* Eye-catchy gradient: purple to orange */
+            background: linear-gradient(135deg, #8a2be2, #ff4500);
             display: flex;
             justify-content: center;
             align-items: center;
             height: 100vh;
             font-family: Arial, sans-serif;
+            touch-action: none; /* Prevents default touch behaviors like scrolling */
         }
         #gameCanvas {
             border: 2px solid #fff;
@@ -75,13 +76,15 @@
         const items = [];
         const itemSize = 40;
         let score = 0;
-        let timeLeft = 70; // Changed to 70 seconds
+        let timeLeft = 70;
         let gameActive = true;
 
-        // Handle paddle movement
+        // Handle movement (keyboard and touch)
         let leftPressed = false;
         let rightPressed = false;
+        let touchX = null;
 
+        // Keyboard controls
         document.addEventListener('keydown', (e) => {
             if (e.key === 'ArrowLeft') leftPressed = true;
             else if (e.key === 'ArrowRight') rightPressed = true;
@@ -90,6 +93,34 @@
         document.addEventListener('keyup', (e) => {
             if (e.key === 'ArrowLeft') leftPressed = false;
             else if (e.key === 'ArrowRight') rightPressed = false;
+        });
+
+        // Touch controls
+        canvas.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            const touch = e.touches[0];
+            touchX = touch.clientX - canvas.offsetLeft;
+        });
+
+        canvas.addEventListener('touchmove', (e) => {
+            e.preventDefault();
+            const touch = e.touches[0];
+            const newTouchX = touch.clientX - canvas.offsetLeft;
+            if (newTouchX < touchX) {
+                leftPressed = true;
+                rightPressed = false;
+            } else if (newTouchX > touchX) {
+                rightPressed = true;
+                leftPressed = false;
+            }
+            touchX = newTouchX;
+        });
+
+        canvas.addEventListener('touchend', (e) => {
+            e.preventDefault();
+            leftPressed = false;
+            rightPressed = false;
+            touchX = null;
         });
 
         // Create a new falling item
@@ -161,7 +192,7 @@
             ctx.fillText(`Time: ${Math.ceil(timeLeft)}`, canvas.width - 80, 30);
 
             // Update timer
-            timeLeft -= 1 / 60; // Assuming 60 FPS
+            timeLeft -= 1 / 60;
             if (timeLeft <= 0) {
                 endGame();
                 return;
@@ -178,7 +209,7 @@
             finalScoreDisplay.textContent = score;
 
             // Share to Twitter button
-            const tweetText = `I just finished the @sign's drop game  by @appledog_eth with a score of ${score}, show me how much you got!`;
+            const tweetText = `I just finished the @sign's drop game made by @appledog_eth with a score of ${score}, show me how much you got!`;
             const tweetUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(tweetText)}`;
             shareTwitterBtn.onclick = () => window.open(tweetUrl, '_blank');
         }
@@ -186,7 +217,7 @@
         // Reset game function
         function resetGame() {
             score = 0;
-            timeLeft = 70; // Reset to 70 seconds
+            timeLeft = 70;
             items.length = 0;
             paddle.x = canvas.width / 2 - 40;
             gameActive = true;
