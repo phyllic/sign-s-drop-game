@@ -100,28 +100,30 @@
             else if (e.key === 'ArrowRight') rightPressed = false;
         });
 
-        // Touch controls: Hold and drag
-        canvas.addEventListener('touchstart', (e) => {
-            e.preventDefault();
+        // Touch controls: Hold and drag from anywhere
+        function getTouchX(e) {
             const rect = canvas.getBoundingClientRect();
             const touch = e.touches[0];
-            const touchX = touch.clientX - rect.left;
-            // Check if touch is near the paddle to start dragging
-            if (touchX >= paddle.x && touchX <= paddle.x + paddle.width) {
-                isDragging = true;
-            }
+            // Adjust for canvas scaling
+            const scaleX = canvas.width / rect.width;
+            return (touch.clientX - rect.left) * scaleX;
+        }
+
+        canvas.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            isDragging = true;
+            const touchX = getTouchX(e);
+            paddle.x = touchX - paddle.width / 2;
+            if (paddle.x < 0) paddle.x = 0;
+            if (paddle.x > canvas.width - paddle.width) paddle.x = canvas.width - paddle.width;
             console.log('Touch started at:', touchX); // Debug
         });
 
         canvas.addEventListener('touchmove', (e) => {
             e.preventDefault();
             if (!isDragging) return;
-            const rect = canvas.getBoundingClientRect();
-            const touch = e.touches[0];
-            const touchX = touch.clientX - rect.left;
-            // Move paddle directly to touch position, centered under finger
+            const touchX = getTouchX(e);
             paddle.x = touchX - paddle.width / 2;
-            // Clamp paddle within canvas bounds
             if (paddle.x < 0) paddle.x = 0;
             if (paddle.x > canvas.width - paddle.width) paddle.x = canvas.width - paddle.width;
             console.log('Touch moved to:', touchX); // Debug
