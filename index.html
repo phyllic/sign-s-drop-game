@@ -87,7 +87,6 @@
         // Handle movement (keyboard and touch)
         let leftPressed = false;
         let rightPressed = false;
-        let isDragging = false;
 
         // Keyboard controls
         document.addEventListener('keydown', (e) => {
@@ -100,40 +99,38 @@
             else if (e.key === 'ArrowRight') rightPressed = false;
         });
 
-        // Touch controls: Hold and drag from anywhere
+        // Touch controls: Tap left or right
         function getTouchX(e) {
             const rect = canvas.getBoundingClientRect();
             const touch = e.touches[0];
-            // Adjust for canvas scaling
             const scaleX = canvas.width / rect.width;
             return (touch.clientX - rect.left) * scaleX;
         }
 
         canvas.addEventListener('touchstart', (e) => {
             e.preventDefault();
-            isDragging = true;
             const touchX = getTouchX(e);
-            paddle.x = touchX - paddle.width / 2;
-            if (paddle.x < 0) paddle.x = 0;
-            if (paddle.x > canvas.width - paddle.width) paddle.x = canvas.width - paddle.width;
-            console.log('Touch started at:', touchX); // Debug
-        });
-
-        canvas.addEventListener('touchmove', (e) => {
-            e.preventDefault();
-            if (!isDragging) return;
-            const touchX = getTouchX(e);
-            paddle.x = touchX - paddle.width / 2;
-            if (paddle.x < 0) paddle.x = 0;
-            if (paddle.x > canvas.width - paddle.width) paddle.x = canvas.width - paddle.width;
-            console.log('Touch moved to:', touchX); // Debug
+            const canvasMidpoint = canvas.width / 2;
+            if (touchX < canvasMidpoint) {
+                leftPressed = true;
+                rightPressed = false;
+                console.log('Tapped left at:', touchX); // Debug
+            } else {
+                rightPressed = true;
+                leftPressed = false;
+                console.log('Tapped right at:', touchX); // Debug
+            }
         });
 
         canvas.addEventListener('touchend', (e) => {
             e.preventDefault();
-            isDragging = false;
+            leftPressed = false;
+            rightPressed = false;
             console.log('Touch ended'); // Debug
         });
+
+        // Remove touchmove as it's not needed for tap controls
+        canvas.removeEventListener('touchmove', () => {});
 
         // Create a new falling item
         function createItem() {
@@ -155,7 +152,7 @@
 
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-            // Move paddle (keyboard only, touch handled in events)
+            // Move paddle
             if (leftPressed && paddle.x > 0) paddle.x -= paddle.speed;
             if (rightPressed && paddle.x < canvas.width - paddle.width) paddle.x += paddle.speed;
 
