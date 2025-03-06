@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Drop Game</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background: linear-gradient(135deg, #8a2be2, #ff4500); /* Eye-catchy gradient: purple to orange */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            font-family: Arial, sans-serif;
+        }
+        #gameCanvas {
+            border: 2px solid #fff;
+        }
+        #gameOverScreen {
+            display: none;
+            position: absolute;
+            text-align: center;
+            color: #fff;
+        }
+        #gameOverScreen button {
+            padding: 10px 20px;
+            font-size: 16px;
+            margin: 10px;
+            cursor: pointer;
+            background-color: #00ff00;
+            border: none;
+            border-radius: 5px;
+        }
+        #gameOverScreen button:hover {
+            background-color: #00cc00;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="gameCanvas" width="400" height="600"></canvas>
+    <div id="gameOverScreen">
+        <h1>Game Over!</h1>
+        <p>Your Score: <span id="finalScore"></span></p>
+        <button id="tryAgain">Try Again</button>
+        <button id="shareTwitter">Share to Twitter</button>
+    </div>
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const gameOverScreen = document.getElementById('gameOverScreen');
+        const finalScoreDisplay = document.getElementById('finalScore');
+        const tryAgainBtn = document.getElementById('tryAgain');
+        const shareTwitterBtn = document.getElementById('shareTwitter');
+
+        // Load images
+        const circleImg = new Image();
+        circleImg.src = 'circle.png';
+        const boomImg1 = new Image();
+        boomImg1.src = 'boom.png';
+        const boomImg2 = new Image();
+        boomImg2.src = 'boom.jpg';
+
+        // Player paddle
+        const paddle = {
+            width: 80,
+            height: 20,
+            x: canvas.width / 2 - 40,
+            y: canvas.height - 40,
+            speed: 7
+        };
+
+        // Falling items
+        const items = [];
+        const itemSize = 40;
+        let score = 0;
+        let timeLeft = 70; // Changed to 70 seconds
+        let gameActive = true;
+
+        // Handle paddle movement
+        let leftPressed = false;
+        let rightPressed = false;
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowLeft') leftPressed = true;
+            else if (e.key === 'ArrowRight') rightPressed = true;
+        });
+
+        document.addEventListener('keyup', (e) => {
+            if (e.key === 'ArrowLeft') leftPressed = false;
+            else if (e.key === 'ArrowRight') rightPressed = false;
+        });
+
+        // Create a new falling item
+        function createItem() {
+            const x = Math.random() * (canvas.width - itemSize) + itemSize / 2;
+            const isBomb = Math.random() < 0.3;
+            const bombType = isBomb ? (Math.random() < 0.5 ? 'boom1' : 'boom2') : null;
+            items.push({ 
+                x, 
+                y: -itemSize, 
+                speed: 2.6, 
+                isBomb: isBomb,
+                bombType: bombType 
+            });
+        }
+
+        // Game loop
+        function update() {
+            if (!gameActive) return;
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Move paddle
+            if (leftPressed && paddle.x > 0) paddle.x -= paddle.speed;
+            if (rightPressed && paddle.x < canvas.width - paddle.width) paddle.x += paddle.speed;
+
+            // Draw paddle
+            ctx.fillStyle = '#00ff00';
+            ctx.fillRect(paddle.x, paddle.y, paddle.width, paddle.height);
+
+            // Update and draw items
+            for (let i = items.length - 1; i >= 0; i--) {
+                const item = items[i];
+                item.y += item.speed;
+
+                // Draw item
+                let img = item.isBomb ? (item.bombType === 'boom1' ? boomImg1 : boomImg2) : circleImg;
+                ctx.drawImage(img, item.x - itemSize / 2, item.y - itemSize / 2, itemSize, itemSize);
+
+                // Check collision with paddle
+                if (
+                    item.y + itemSize / 2 > paddle.y &&
+                    item.y - itemSize / 2 < paddle.y + paddle.height &&
+                    item.x > paddle.x &&
+                    item.x < paddle.x + paddle.width
+                ) {
+                    if (item.isBomb) {
+                        score -= 20;
+                    } else {
+                        score += 10;
+                    }
+                    items.splice(i, 1);
+                    continue;
+                }
+
+                // Remove item if it falls off screen
+                if (item.y > canvas.height) {
+                    items.splice(i, 1);
+                }
+            }
+
+            // Spawn new items
+            if (Math.random() < 0.02) createItem();
+
+            // Draw score and timer
+            ctx.fillStyle = '#fff';
+            ctx.font = '20px Arial';
+            ctx.fillText(`Score: ${score}`, 10, 30);
+            ctx.fillText(`Time: ${Math.ceil(timeLeft)}`, canvas.width - 80, 30);
+
+            // Update timer
+            timeLeft -= 1 / 60; // Assuming 60 FPS
+            if (timeLeft <= 0) {
+                endGame();
+                return;
+            }
+
+            requestAnimationFrame(update);
+        }
+
+        // End game function
+        function endGame() {
+            gameActive = false;
+            canvas.style.display = 'none';
+            gameOverScreen.style.display = 'block';
+            finalScoreDisplay.textContent = score;
+
+            // Share to Twitter button
+            const tweetText = `I just finished the @sign's drop game  by @appledog_eth with a score of ${score}, show me how much you got!`;
+            const tweetUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(tweetText)}`;
+            shareTwitterBtn.onclick = () => window.open(tweetUrl, '_blank');
+        }
+
+        // Reset game function
+        function resetGame() {
+            score = 0;
+            timeLeft = 70; // Reset to 70 seconds
+            items.length = 0;
+            paddle.x = canvas.width / 2 - 40;
+            gameActive = true;
+            canvas.style.display = 'block';
+            gameOverScreen.style.display = 'none';
+            update();
+        }
+
+        // Try Again button
+        tryAgainBtn.onclick = resetGame;
+
+        // Start the game once all images are loaded
+        let imagesLoaded = 0;
+        const totalImages = 3;
+        function imageLoaded() {
+            imagesLoaded++;
+            if (imagesLoaded === totalImages) {
+                update();
+            }
+        }
+        circleImg.onload = imageLoaded;
+        boomImg1.onload = imageLoaded;
+        boomImg2.onload = imageLoaded;
+    </script>
+</body>
+</html>
