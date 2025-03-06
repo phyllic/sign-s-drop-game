@@ -8,13 +8,19 @@
         body {
             margin: 0;
             overflow: hidden;
-            background: linear-gradient(135deg, #8a2be2, #ff4500);
+            background: radial-gradient(circle at center, #00ced1, #ff00ff, #ffff00); /* Teal, magenta, yellow radial gradient */
             display: flex;
             justify-content: center;
             align-items: center;
             height: 100vh;
             font-family: Arial, sans-serif;
-            touch-action: none; /* Prevents default touch behaviors like scrolling */
+            touch-action: none;
+            animation: pulse 5s infinite alternate; /* Pulsating effect */
+        }
+        @keyframes pulse {
+            0% { background: radial-gradient(circle at center, #00ced1, #ff00ff, #ffff00); }
+            50% { background: radial-gradient(circle at center, #ff00ff, #ffff00, #00ced1); }
+            100% { background: radial-gradient(circle at center, #ffff00, #00ced1, #ff00ff); }
         }
         #gameCanvas {
             border: 2px solid #fff;
